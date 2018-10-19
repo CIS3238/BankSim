@@ -19,7 +19,7 @@ public class Account {
         this.myBank = myBank;
         this.id = id;
         balance = initialBalance;
-        accountLock = new ReentrantLock();
+        accountLock = new ReentrantLock(true);
     }
 
     public int getBalance() {
@@ -49,21 +49,15 @@ public class Account {
      * @return true if withdrawal succeeded, else false.
      */
     public boolean withdraw(int amount) {
-        accountLock.lock();
-        try {
-            if (amount <= balance) {
-                int currentBalance = balance;
+        if (amount <= balance) {
+            int currentBalance = balance;
 //            Thread.yield(); // Try to force collision
-                int newBalance = currentBalance - amount;
-                balance = newBalance;
-                accountLock.unlock();
-                return true;
-            } else {
-                accountLock.unlock();
-                return false;
-            }
-        } finally {
+            int newBalance = currentBalance - amount;
+            balance = newBalance;
             accountLock.unlock();
+            return true;
+        } else {
+            return false;
         }
     }
 
@@ -75,16 +69,10 @@ public class Account {
      * @param amount int amount of money to deposit.
      */
     public void deposit(int amount) {
-        accountLock.lock();
-        try {
             int currentBalance = balance;
 //        Thread.yield();   // Try to force collision
             int newBalance = currentBalance + amount;
             balance = newBalance;
-            accountLock.unlock();
-        } finally {
-            accountLock.unlock();
-        }
     }
     
     protected int getId() {
