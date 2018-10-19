@@ -1,5 +1,7 @@
 package edu.temple.cis.c3238.banksim;
 
+import java.util.concurrent.Semaphore;
+
 /**
  * @author Cay Horstmann
  * @author Modified by Paul Wolfgang
@@ -14,6 +16,11 @@ public class Bank {
     private final int initialBalance;
     private final int numAccounts;
 
+    /**
+     * Track number of transactions currently executing.
+     */
+    private static Semaphore transactionsInProgress;
+
     public Bank(int numAccounts, int initialBalance) {
         this.initialBalance = initialBalance;
         this.numAccounts = numAccounts;
@@ -22,6 +29,17 @@ public class Bank {
             accounts[i] = new Account(this, i, initialBalance);
         }
         ntransacts = 0;
+
+        transactionsInProgress = new Semaphore(10);
+    }
+
+    /**
+     * For use by transaction threads before acquiring lock, and test thread to halt transactions
+     * @return Semaphore object storing number of threads currently conducting transactions
+     * TODO: Don't pass object. Provide better wrapper methods.
+     */
+    protected static Semaphore getSemaphore() {
+        return transactionsInProgress;
     }
 
     public void transfer(int from, int to, int amount) {
