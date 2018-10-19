@@ -19,7 +19,7 @@ public class Account {
         this.myBank = myBank;
         this.id = id;
         balance = initialBalance;
-        accountLock = new ReentrantLock(true);
+        accountLock = new ReentrantLock();
     }
 
     public int getBalance() {
@@ -30,14 +30,17 @@ public class Account {
      * Wrapper for acquiring instance's lock.
      */
     public void lockAccount(){
-        accountLock.lock();
+        accountLock.tryLock();
     }
 
     /**
-     * Wrapper for releasing instance's lock.
+     * Wrapper for releasing instance's lock. Will not throw exception.
+     * post: current thread does not hold lock
      */
     public void releaseAccount() {
-        accountLock.unlock();
+        try {
+            accountLock.unlock();
+        } catch (IllegalMonitorStateException imse) {}
     }
 
     /**
