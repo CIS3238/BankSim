@@ -13,7 +13,7 @@ public class Account {
     private volatile int balance;
     private final int id;
     private final Bank myBank;
-    private Lock accountLock;
+    private ReentrantLock accountLock;
 
     public Account(Bank myBank, int id, int initialBalance) {
         this.myBank = myBank;
@@ -41,6 +41,13 @@ public class Account {
         try {
             accountLock.unlock();
         } catch (IllegalMonitorStateException imse) {}
+    }
+
+    /**
+     * Wrapper to check if account is locked by current thread.
+     */
+    public boolean accountLockedInCurrentThread() {
+        return accountLock.isHeldByCurrentThread();
     }
 
     /**

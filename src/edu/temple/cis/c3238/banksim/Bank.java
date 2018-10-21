@@ -17,6 +17,11 @@ public class Bank {
     private final int numAccounts;
 
     /**
+     * Maximum number of simultaneous transactions allowed.
+     */
+    private final int MAX_SYNCH_TRANSACTIONS = 10;
+
+    /**
      * Track number of transactions currently executing.
      */
     private static Semaphore transactionsInProgress;
@@ -30,7 +35,7 @@ public class Bank {
         }
         ntransacts = 0;
 
-        transactionsInProgress = new Semaphore(10);
+        transactionsInProgress = new Semaphore(MAX_SYNCH_TRANSACTIONS);
     }
 
     /**
@@ -43,29 +48,59 @@ public class Bank {
     }
 
     public void transfer(int from, int to, int amount) {
+
+        boolean havePermit, haveFromLock, haveToLock;
+
+        do { // Repeatedly try to establish complete exclusive access, until locked out test and other transfers.
+            havePermit = getSemaphore().tryAcquire();
+            accounts[from].lockAccount();
+            haveFromLock = accounts[from].accountLockedInCurrentThread();
+            accounts[to].lockAccount();
+            haveToLock = accounts[to].accountLockedInCurrentThread();
+
+            if(!havePermit || !haveFromLock || !haveToLock) { // failed to lock critical section -- back down
+                accounts[from].releaseAccount();
+                accounts[to].releaseAccount();
+                if (havePermit) {
+                    getSemaphore().release();
+                }
+            }
+        } while(!havePermit || !haveFromLock || !haveToLock) ;// keep redundant check to improve readability
 //        accounts[from].waitForAvailableFunds(amount);
         if (accounts[from].withdraw(amount)) {
             accounts[to].deposit(amount);
         }
         if (shouldTest()) test();
+
+        // Release everything -- guaranteed to hold so no check needed.
+        accounts[from].releaseAccount();
+        accounts[to].releaseAccount();
+        getSemaphore().release();
     }
 
     public void test() {
-        int sum = 0;
-        for (Account account : accounts) {
-            System.out.printf("%s %s%n", 
-                    Thread.currentThread().toString(), account.toString());
-            sum += account.getBalance();
-        }
-        System.out.println(Thread.currentThread().toString() + 
-                " Sum: " + sum);
-        if (sum != numAccounts * initialBalance) {
-            System.out.println(Thread.currentThread().toString() + 
-                    " Money was gained or lost");
-            System.exit(1);
-        } else {
-            System.out.println(Thread.currentThread().toString() + 
-                    " The bank is in balance");
+
+        try {
+            getSemaphore().acquireUninterruptibly(MAX_SYNCH_TRANSACTIONS);
+
+            int sum = 0;
+            for (Account account : accounts) {
+                System.out.printf("%s %s%n",
+                        Thread.currentThread().toString(), account.toString());
+                sum += account.getBalance();
+            }
+            System.out.println(Thread.currentThread().toString() +
+                    " Sum: " + sum);
+            if (sum != numAccounts * initialBalance) {
+                System.out.println(Thread.currentThread().toString() +
+                        " Money was gained or lost");
+                System.exit(1);
+            } else {
+                System.out.println(Thread.currentThread().toString() +
+                        " The bank is in balance");
+            }
+        } finally {
+            getSemaphore().release(MAX_SYNCH_TRANSACTIONS);
         }
     }
 
