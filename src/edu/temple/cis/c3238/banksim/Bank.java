@@ -52,6 +52,8 @@ public class Bank {
         boolean havePermit, haveFromLock, haveToLock;
 
         do { // Repeatedly try to establish complete exclusive access, until locked out test and other transfers.
+            /* Never block. Try to lock everything, and if failing, back out and try again next time the loop passes. */
+
             havePermit = getSemaphore().tryAcquire();
             accounts[from].lockAccount();
             haveFromLock = accounts[from].accountLockedInCurrentThread();
@@ -81,6 +83,7 @@ public class Bank {
     public void test() {
 
         try {
+            // Block until all permits acquired, halting transactions.
             getSemaphore().acquireUninterruptibly(MAX_SYNCH_TRANSACTIONS);
 
             int sum = 0;
@@ -100,6 +103,7 @@ public class Bank {
                         " The bank is in balance");
             }
         } finally {
+            // Release all permits, resuming transactions.
             getSemaphore().release(MAX_SYNCH_TRANSACTIONS);
         }
     }
