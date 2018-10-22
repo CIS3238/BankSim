@@ -38,9 +38,9 @@ public class Account {
      * post: current thread does not hold lock
      */
     public void releaseAccount() {
-        try {
+        if(accountLock.isHeldByCurrentThread()){
             accountLock.unlock();
-        } catch (IllegalMonitorStateException imse) {}
+        }
     }
 
     /**
@@ -64,7 +64,6 @@ public class Account {
 //            Thread.yield(); // Try to force collision
             int newBalance = currentBalance - amount;
             balance = newBalance;
-            accountLock.unlock();
             return true;
         } else {
             return false;
