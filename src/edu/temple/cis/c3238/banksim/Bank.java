@@ -12,7 +12,7 @@ public class Bank {
 
     public static final int NTEST = 10;
     private final Account[] accounts;
-    private long ntransacts = 0;
+    public long ntransacts = 0;
     private final int initialBalance;
     private final int numAccounts;
 
@@ -72,7 +72,8 @@ public class Bank {
         if (accounts[from].withdraw(amount)) {
             accounts[to].deposit(amount);
         }
-        if (shouldTest()) test();
+        ntransacts++;
+        //if (shouldTest()) test();
 
         // Release everything -- guaranteed to hold so no check needed.
         accounts[from].releaseAccount();

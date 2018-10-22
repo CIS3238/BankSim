@@ -9,6 +9,7 @@ class TransferThread extends Thread {
     private final Bank bank;
     private final int fromAccount;
     private final int maxAmount;
+    public static boolean stopAllTransfers = false;
 
     public TransferThread(Bank b, int from, int max) {
         bank = b;
@@ -18,10 +19,14 @@ class TransferThread extends Thread {
 
     @Override
     public void run() {
-        for (int i = 0; i < 10000; i++) {
+        for (int i = 0; i < 100000; i++) {
+            if (stopAllTransfers) break;
             int toAccount = (int) (bank.size() * Math.random());
             int amount = (int) (maxAmount * Math.random());
             bank.transfer(fromAccount, toAccount, amount);
+            //System.out.println("Thread " + this.getId() + " did transfer " + i);
         }
+        System.out.println("TransferThread " + this.getId() + " exiting");
+        stopAllTransfers = true;
     }
 }
